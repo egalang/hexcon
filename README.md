@@ -564,7 +564,7 @@ Result:
 
 APK successfully connects to:
 
-http://192.168.1.x:8000
+http://hex-conquest-pvp-alb-1620546806.ap-southeast-2.elb.amazonaws.com
 
 ---
 
