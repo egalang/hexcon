@@ -16,11 +16,31 @@ type Hex = {
   text?: Phaser.GameObjects.Text;
 };
 
+type OnlineRoomState = {
+  room_code: string;
+  player_id?: string;
+  player_color?: Player | null;
+  red_joined: boolean;
+  current_player: Player;
+  turn: number;
+  game_over: boolean;
+  winner: Player | null;
+  counts: { blue: number; red: number };
+  cells: { q: number; r: number; s: number; owner: Owner }[];
+  updated_at: number;
+};
+
 const WIDTH = 450;
 const HEIGHT = 800;
 const BOARD_RADIUS = 4;
 const HEX_SIZE = 27.5;
 const SQRT3 = Math.sqrt(3);
+
+const BLUE_SOLDIER_KEY = 'blue_soldier';
+const RED_SOLDIER_KEY = 'red_soldier';
+
+const DEFAULT_PVP_SERVER_URL =
+  localStorage.getItem('hex_pvp_server_url') || 'http://hex-conquest-pvp-alb-1620546806.ap-southeast-2.elb.amazonaws.com';
 
 const COLORS = {
   bgTop: 0x1db9e8,
@@ -80,8 +100,8 @@ class MenuScene extends Phaser.Scene {
       this.scene.start('HexConquestScene', { mode: 'local', campaignLevel: 1 });
     });
 
-    this.createMenuButton(495, 'Play Against Online Player', 'Placeholder for future multiplayer', () => {
-      this.scene.start('OnlinePlaceholderScene');
+    this.createMenuButton(495, 'Play Against Online Player', 'Create or join a private room code', () => {
+      this.scene.start('OnlineLobbyScene');
     });
 
     this.add.text(WIDTH / 2, 690, 'Tip: Press R during a match to restart.', {
@@ -134,9 +154,12 @@ class MenuScene extends Phaser.Scene {
   }
 }
 
-class OnlinePlaceholderScene extends Phaser.Scene {
+class OnlineLobbyScene extends Phaser.Scene {
+  private serverUrl = DEFAULT_PVP_SERVER_URL;
+  private statusText!: Phaser.GameObjects.Text;
+
   constructor() {
-    super('OnlinePlaceholderScene');
+    super('OnlineLobbyScene');
   }
 
   create() {
@@ -144,55 +167,126 @@ class OnlinePlaceholderScene extends Phaser.Scene {
     g.fillGradientStyle(COLORS.bgTop, COLORS.bgTop, COLORS.bgBottom, COLORS.bgBottom, 1);
     g.fillRect(0, 0, WIDTH, HEIGHT);
 
-    this.add.text(WIDTH / 2, 82, 'ONLINE MULTIPLAYER', {
-      fontSize: '31px',
+    this.add.text(WIDTH / 2, 72, 'ONLINE PVP', {
+      fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
-      strokeThickness: 6,
+      strokeThickness: 7,
     }).setOrigin(0.5);
 
-    const panel = this.add.graphics();
-    panel.fillStyle(0x163d5d, 0.82);
-    panel.lineStyle(3, 0xffffff, 0.58);
-    panel.fillRoundedRect(34, 210, WIDTH - 68, 260, 18);
-    panel.strokeRoundedRect(34, 210, WIDTH - 68, 260, 18);
-
-    this.add.text(WIDTH / 2, 300, 'Coming Soon', {
-      fontSize: '30px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 5,
-    }).setOrigin(0.5);
-
-    this.add.text(WIDTH / 2, 370, 'This mode is reserved for future\nonline matchmaking or private rooms.', {
-      fontSize: '18px',
+    this.add.text(WIDTH / 2, 116, 'Create a room or join with a code.', {
+      fontSize: '16px',
       color: '#eaf7ff',
       stroke: '#000000',
       strokeThickness: 3,
-      align: 'center',
     }).setOrigin(0.5);
 
-    this.createBackButton();
+    const panel = this.add.graphics();
+    panel.fillStyle(0x163d5d, 0.78);
+    panel.lineStyle(3, 0xffffff, 0.6);
+    panel.fillRoundedRect(24, 145, WIDTH - 48, 110, 18);
+    panel.strokeRoundedRect(24, 145, WIDTH - 48, 110, 18);
+
+    this.statusText = this.add.text(WIDTH / 2, 200, `Server:\n${this.serverUrl}`, {
+      fontSize: '15px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center',
+      wordWrap: { width: 370 },
+    }).setOrigin(0.5);
+
+    this.createLobbyButton(315, 'Create Room', () => this.createRoom());
+    this.createLobbyButton(405, 'Join Room', () => this.joinRoom());
+    this.createLobbyButton(495, 'Set Server URL', () => this.setServerUrl());
+    this.createLobbyButton(650, 'Back to Menu', () => this.scene.start('MenuScene'));
   }
 
-  private createBackButton() {
-    const button = this.add.container(WIDTH / 2, 650);
+  private createLobbyButton(y: number, labelText: string, callback: () => void) {
+    const button = this.add.container(WIDTH / 2, y);
     const bg = this.add.graphics();
     bg.fillStyle(0xb78a55, 1);
-    bg.fillRoundedRect(-130, -27, 260, 54, 14);
+    bg.fillRoundedRect(-155, -29, 310, 58, 14);
 
-    const label = this.add.text(0, 0, 'Back to Menu', {
+    const label = this.add.text(0, 0, labelText, {
       fontSize: '23px',
       fontStyle: 'bold',
       color: '#ffffff',
     }).setOrigin(0.5);
 
     button.add([bg, label]);
-    button.setSize(260, 54);
+    button.setSize(310, 58);
     button.setInteractive({ useHandCursor: true });
-    button.on('pointerdown', () => this.scene.start('MenuScene'));
+    button.on('pointerdown', callback);
+  }
+
+  private setStatus(text: string) {
+    this.statusText.setText(text);
+  }
+
+  private normalizeServerUrl(url: string) {
+    return url.trim().replace(/\/$/, '');
+  }
+
+  private setServerUrl() {
+    const entered = window.prompt('Enter PvP server URL', this.serverUrl);
+    if (!entered) return;
+
+    this.serverUrl = this.normalizeServerUrl(entered);
+    localStorage.setItem('hex_pvp_server_url', this.serverUrl);
+    this.setStatus(`Server:\n${this.serverUrl}`);
+  }
+
+  private async createRoom() {
+    try {
+      this.setStatus('Creating room...');
+
+      const res = await fetch(`${this.serverUrl}/rooms/create`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const state: OnlineRoomState = await res.json();
+      this.scene.start('HexConquestScene', {
+        mode: 'online',
+        onlineServerUrl: this.serverUrl,
+        roomCode: state.room_code,
+        playerId: state.player_id,
+        playerColor: state.player_color,
+      });
+    } catch (error) {
+      this.setStatus(`Create room failed:\n${String(error).slice(0, 160)}`);
+    }
+  }
+
+  private async joinRoom() {
+    try {
+      const code = window.prompt('Enter room code')?.trim().toUpperCase();
+      if (!code) return;
+
+      this.setStatus(`Joining ${code}...`);
+
+      const res = await fetch(`${this.serverUrl}/rooms/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_code: code }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const state: OnlineRoomState = await res.json();
+      this.scene.start('HexConquestScene', {
+        mode: 'online',
+        onlineServerUrl: this.serverUrl,
+        roomCode: state.room_code,
+        playerId: state.player_id,
+        playerColor: state.player_color,
+      });
+    } catch (error) {
+      this.setStatus(`Join room failed:\n${String(error).slice(0, 160)}`);
+    }
   }
 }
 
@@ -214,19 +308,40 @@ class HexConquestScene extends Phaser.Scene {
   private previewTexts: Phaser.GameObjects.Text[] = [];
   private endButtons: Phaser.GameObjects.Container[] = [];
 
+  private onlineServerUrl = '';
+  private roomCode = '';
+  private playerId = '';
+  private playerColor: Player | null = null;
+  private pollingEvent?: Phaser.Time.TimerEvent;
+  private onlineSubmittingMove = false;
+  private onlineInteracting = false;
+  private lastAppliedOnlineUpdate = 0;
+
   constructor() {
     super('HexConquestScene');
   }
 
   preload() {
-    this.load.image('blue_soldier', blueSoldierUrl);
-    this.load.image('red_soldier', redSoldierUrl);
+    this.load.image(BLUE_SOLDIER_KEY, blueSoldierUrl);
+    this.load.image(RED_SOLDIER_KEY, redSoldierUrl);
   }
 
-  init(data: { mode?: GameMode; campaignLevel?: number }) {
+  init(data: {
+    mode?: GameMode;
+    campaignLevel?: number;
+    onlineServerUrl?: string;
+    roomCode?: string;
+    playerId?: string;
+    playerColor?: Player | null;
+  }) {
     this.mode = data.mode ?? 'ai';
     this.campaignLevel = data.campaignLevel ?? 1;
-    this.aiPlayer = this.mode === 'local' ? null : 'red';
+    this.aiPlayer = this.mode === 'local' || this.mode === 'online' ? null : 'red';
+
+    this.onlineServerUrl = data.onlineServerUrl ?? '';
+    this.roomCode = data.roomCode ?? '';
+    this.playerId = data.playerId ?? '';
+    this.playerColor = data.playerColor ?? null;
   }
 
   private resetState() {
@@ -239,6 +354,10 @@ class HexConquestScene extends Phaser.Scene {
     this.validMoves.clear();
     this.previewTexts = [];
     this.endButtons = [];
+    this.pollingEvent = undefined;
+    this.onlineSubmittingMove = false;
+    this.onlineInteracting = false;
+    this.lastAppliedOnlineUpdate = 0;
   }
 
   create() {
@@ -250,6 +369,10 @@ class HexConquestScene extends Phaser.Scene {
     this.input.keyboard?.off('keydown-R');
     this.input.keyboard?.on('keydown-R', () => this.restartGame());
     this.updateHud();
+
+    if (this.mode === 'online') {
+      this.startOnlinePolling();
+    }
   }
 
   private createBackground() {
@@ -278,6 +401,7 @@ class HexConquestScene extends Phaser.Scene {
     if (this.mode === 'campaign') return `Campaign Level ${this.campaignLevel}`;
     if (this.mode === 'ai') return 'Play Against AI';
     if (this.mode === 'local') return 'Local 2 Player';
+    if (this.mode === 'online') return `Online PvP Room ${this.roomCode}`;
     return 'Online Multiplayer';
   }
 
@@ -298,17 +422,18 @@ class HexConquestScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.countText = this.add.text(WIDTH / 2, 171, '', {
-      fontSize: '18px',
+      fontSize: '16px',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 3,
       align: 'center',
+      wordWrap: { width: WIDTH - 60 },
     }).setOrigin(0.5);
   }
 
   private createBottomButtons() {
     this.createSmallButton(WIDTH / 2 - 93, 740, 'Menu', () => this.backToMenu());
-    this.createSmallButton(WIDTH / 2 + 93, 740, 'Restart', () => this.restartGame());
+    this.createSmallButton(WIDTH / 2 + 93, 740, this.mode === 'online' ? 'Leave' : 'Restart', () => this.restartGame());
   }
 
   private createSmallButton(x: number, y: number, labelText: string, callback: () => void) {
@@ -356,7 +481,6 @@ class HexConquestScene extends Phaser.Scene {
     if (q <= -3 || s >= 3) return 'blue';
     if (q >= 3 || s <= -3) return 'red';
 
-    // Campaign difficulty: later levels give Red a slightly stronger starting edge.
     if (this.mode === 'campaign' && this.campaignLevel >= 3 && (q === 2 || s === -2) && Phaser.Math.Between(0, 100) < 24) {
       return 'red';
     }
@@ -387,11 +511,10 @@ class HexConquestScene extends Phaser.Scene {
 
     const { x, y } = this.hexToPixel(hex.q, hex.r);
 
-    // Adjust these values if you want to fine-tune the sprite position inside the hex.
     const PIECE_OFFSET_X = -25;
     const PIECE_OFFSET_Y = -30;
 
-    const texture = hex.owner === 'blue' ? 'blue_soldier' : 'red_soldier';
+    const texture = hex.owner === 'blue' ? BLUE_SOLDIER_KEY : RED_SOLDIER_KEY;
 
     const sprite = this.add.image(
       x + PIECE_OFFSET_X,
@@ -399,18 +522,24 @@ class HexConquestScene extends Phaser.Scene {
       texture
     );
 
-    // Keep character art inside the hex.
-    // Increase/decrease this size depending on your PNG proportions.
     sprite.setDisplaySize(44, 44);
-
-    // The red artwork already faces left, which is good because red starts on the right.
     sprite.setDepth(5);
 
     hex.piece = sprite;
   }
 
   private handleHexTap(hex: Hex) {
-    if (this.gameOver || this.aiThinking || this.currentPlayer === this.aiPlayer) return;
+    if (this.gameOver || this.aiThinking || this.onlineSubmittingMove) return;
+
+    if (this.mode === 'online') {
+      if (!this.playerColor) return;
+      if (this.currentPlayer !== this.playerColor) {
+        this.shakeInvalid(hex);
+        return;
+      }
+    } else if (this.currentPlayer === this.aiPlayer) {
+      return;
+    }
 
     if (hex.owner === this.currentPlayer) {
       this.selectHex(hex);
@@ -418,7 +547,11 @@ class HexConquestScene extends Phaser.Scene {
     }
 
     if (this.selected && !hex.owner && this.validMoves.has(this.key(hex.q, hex.r))) {
-      this.moveSelectedTo(hex);
+      if (this.mode === 'online') {
+        this.submitOnlineMove(this.selected, hex);
+      } else {
+        this.moveSelectedTo(hex);
+      }
       return;
     }
 
@@ -426,6 +559,10 @@ class HexConquestScene extends Phaser.Scene {
   }
 
   private selectHex(hex: Hex) {
+    if (this.mode === 'online') {
+      this.onlineInteracting = true;
+    }
+
     this.clearHighlights();
     this.selected = hex;
     hex.poly?.setStrokeStyle(5, COLORS.selected, 1);
@@ -495,7 +632,6 @@ class HexConquestScene extends Phaser.Scene {
       this.turn++;
       this.updateHud();
 
-      // After switching turns, also check if the next player has no legal moves.
       if (this.checkVictory()) return;
 
       if (this.currentPlayer === this.aiPlayer) {
@@ -578,9 +714,6 @@ class HexConquestScene extends Phaser.Scene {
         if (to.owner) continue;
 
         const converted = this.countAdjacentEnemies(to, player);
-
-        // Prefer moves that convert enemies, then slightly prefer central positions.
-        // Small random value prevents the AI from making the same-looking move every game.
         const centerDistance = Math.abs(to.q) + Math.abs(to.r) + Math.abs(to.s);
         const centerBonus = (BOARD_RADIUS * 3 - centerDistance) * 2;
         const randomBonus = Phaser.Math.Between(0, 4);
@@ -593,7 +726,6 @@ class HexConquestScene extends Phaser.Scene {
     if (!moves.length) return null;
     moves.sort((a, b) => b.score - a.score);
 
-    // Campaign difficulty: early levels make weaker moves sometimes.
     if (this.mode === 'campaign') {
       const pickFromTop = Math.max(1, 6 - this.campaignLevel);
       const maxIndex = Math.min(pickFromTop, moves.length) - 1;
@@ -601,6 +733,130 @@ class HexConquestScene extends Phaser.Scene {
     }
 
     return moves[0];
+  }
+
+  private async startOnlinePolling() {
+    await this.pollOnlineState();
+
+    this.pollingEvent = this.time.addEvent({
+      delay: 2200,
+      loop: true,
+      callback: () => this.pollOnlineState(),
+    });
+  }
+
+  private async pollOnlineState() {
+    if (this.mode !== 'online' || !this.roomCode || !this.onlineServerUrl) return;
+
+    // Prevent incoming polling data from clearing the player's current selection
+    // or overwriting the board while a move is being submitted.
+    if (this.onlineSubmittingMove || this.onlineInteracting) return;
+
+    try {
+      const res = await fetch(
+        `${this.onlineServerUrl}/rooms/${this.roomCode}/state?player_id=${encodeURIComponent(this.playerId)}`
+      );
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const state: OnlineRoomState = await res.json();
+      this.applyOnlineState(state);
+    } catch (error) {
+      this.countText.setText(`PvP sync error: ${String(error).slice(0, 80)}`);
+    }
+  }
+
+  private async submitOnlineMove(from: Hex, to: Hex) {
+    if (!this.onlineServerUrl || !this.roomCode || !this.playerId) return;
+    if (this.onlineSubmittingMove) return;
+
+    this.onlineSubmittingMove = true;
+    this.onlineInteracting = false;
+    this.selected = null;
+    this.clearHighlights();
+    this.statusText.setText('SUBMITTING MOVE...');
+
+    try {
+      const res = await fetch(`${this.onlineServerUrl}/rooms/${this.roomCode}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_id: this.playerId,
+          from_q: from.q,
+          from_r: from.r,
+          to_q: to.q,
+          to_r: to.r,
+        }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const state: OnlineRoomState = await res.json();
+      this.applyOnlineState(state, true);
+    } catch (error) {
+      this.statusText.setText('MOVE FAILED');
+      this.countText.setText(String(error).slice(0, 100));
+    } finally {
+      this.onlineSubmittingMove = false;
+
+      // Give the backend response a short moment to settle before polling resumes.
+      this.time.delayedCall(350, () => {
+        this.onlineInteracting = false;
+      });
+    }
+  }
+
+  private applyOnlineState(state: OnlineRoomState, force = false) {
+    if (!force && this.onlineSubmittingMove) return;
+
+    // Avoid applying stale poll responses after a newer state has already arrived.
+    if (!force && state.updated_at && state.updated_at < this.lastAppliedOnlineUpdate) return;
+    if (state.updated_at) this.lastAppliedOnlineUpdate = state.updated_at;
+
+    this.roomCode = state.room_code;
+    this.currentPlayer = state.current_player;
+    this.turn = state.turn;
+    this.gameOver = state.game_over;
+
+    if (state.player_id) this.playerId = state.player_id;
+    if (state.player_color) this.playerColor = state.player_color;
+
+    for (const cell of state.cells) {
+      const h = this.hexes.get(this.key(cell.q, cell.r));
+      if (!h || h.owner === cell.owner) continue;
+
+      h.owner = cell.owner;
+      h.piece?.destroy();
+      h.piece = undefined;
+
+      const fill = h.owner === 'blue' ? COLORS.blue : h.owner === 'red' ? COLORS.red : COLORS.empty;
+      h.poly?.setFillStyle(fill, 1);
+      if (h.owner) this.createPiece(h);
+    }
+
+    this.clearHighlights();
+
+    if (this.mode === 'online' && this.currentPlayer !== this.playerColor) {
+      this.onlineInteracting = false;
+      this.selected = null;
+    }
+
+    if (!state.red_joined) {
+      this.statusText.setText(`ROOM ${state.room_code}`);
+      this.statusText.setColor('#ffffff');
+      this.countText.setText('Waiting for Player 2 to join...');
+      return;
+    }
+
+    if (state.game_over) {
+      const winner = state.winner ?? 'blue';
+      this.statusText.setText(`${winner.toUpperCase()} WINS!`);
+      this.statusText.setColor(winner === 'blue' ? '#7cc3ff' : '#ff8f8f');
+      this.countText.setText(`Room ${state.room_code}  Blue ${state.counts.blue} | Red ${state.counts.red}`);
+      return;
+    }
+
+    this.updateHud();
   }
 
   private countAdjacentEnemies(hex: Hex, player: Player): number {
@@ -680,10 +936,21 @@ class HexConquestScene extends Phaser.Scene {
     if (this.aiThinking) {
       this.statusText.setText('RED IS THINKING...');
       this.statusText.setColor('#ff8f8f');
-    } else {
-      this.statusText.setText(`${this.currentPlayer.toUpperCase()}'S TURN`);
-      this.statusText.setColor(this.currentPlayer === 'blue' ? '#7cc3ff' : '#ff8f8f');
+      this.countText.setText(`Turn ${this.turn}    Blue ${counts.blue}  |  Red ${counts.red}`);
+      return;
     }
+
+    if (this.mode === 'online') {
+      const turnText = this.currentPlayer === this.playerColor ? 'YOUR TURN' : `${this.currentPlayer.toUpperCase()}'S TURN`;
+      const colorText = this.playerColor ? `You are ${this.playerColor.toUpperCase()}` : 'Online PvP';
+      this.statusText.setText(turnText);
+      this.statusText.setColor(this.currentPlayer === 'blue' ? '#7cc3ff' : '#ff8f8f');
+      this.countText.setText(`Room ${this.roomCode}  ${colorText}\nTurn ${this.turn}  Blue ${counts.blue} | Red ${counts.red}`);
+      return;
+    }
+
+    this.statusText.setText(`${this.currentPlayer.toUpperCase()}'S TURN`);
+    this.statusText.setColor(this.currentPlayer === 'blue' ? '#7cc3ff' : '#ff8f8f');
 
     const modePart = this.mode === 'campaign' ? `Level ${this.campaignLevel}  ` : '';
     this.countText.setText(`${modePart}Turn ${this.turn}    Blue ${counts.blue}  |  Red ${counts.red}`);
@@ -721,10 +988,14 @@ class HexConquestScene extends Phaser.Scene {
   }
 
   private restartGame() {
-    // Important: Phaser restarts the same Scene instance, so class fields
-    // like gameOver/aiThinking can keep their old values unless we reset them.
     this.time.removeAllEvents();
     this.tweens.killAll();
+
+    if (this.mode === 'online') {
+      this.scene.start('OnlineLobbyScene');
+      return;
+    }
+
     this.resetState();
     this.scene.restart({ mode: this.mode, campaignLevel: this.campaignLevel });
   }
@@ -775,7 +1046,7 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [MenuScene, OnlinePlaceholderScene, HexConquestScene],
+  scene: [MenuScene, OnlineLobbyScene, HexConquestScene],
 };
 
 new Phaser.Game(config);

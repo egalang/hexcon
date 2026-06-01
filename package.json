@@ -9,10 +9,12 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@vitejs/plugin-legacy": "latest",
-    "vite": "latest",
+    "phaser": "latest",
     "typescript": "latest",
-    "phaser": "latest"
-  },
-  "devDependencies": {}
+    "vite": "latest"
+  }
 }

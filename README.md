@@ -2,188 +2,232 @@
 
 ## Project Overview
 
-Hex Conquest is a turn-based strategy game built with Phaser 3 and Vite.
+Hex Conquest is a turn-based multiplayer strategy game built with:
 
-The game is inspired by classic territory-conversion games such as Ataxx, Hexxagon, and Othello, but uses a hexagonal battlefield and a very simple ruleset.
+* Phaser 3
+* TypeScript
+* Vite
+* Capacitor Android
+* FastAPI
+* Docker
 
-The focus is:
+The game is inspired by Ataxx, Hexxagon, and Othello but uses a simplified hex-grid system designed for fast mobile matches.
 
-* Simple to learn
-* Deep tactical gameplay
+Core design goals:
+
+* Easy to learn
 * Fast matches (2–5 minutes)
-* Mobile-first design
-* Future online multiplayer
+* Mobile-first
+* Online multiplayer
+* Simple to balance
+* Expandable into campaign and competitive play
 
 ---
 
-# Current Status
+# Current Project Status
 
-## Working Features
+## Overall Progress
 
 ### Core Gameplay
 
-* Hexagonal game board
-* Turn-based gameplay
-* Blue starts first
-* One move per turn
-* Move exactly one adjacent hex
-* Original tile becomes empty after moving
-* Occupied tiles cannot be moved into
+Status: COMPLETE
 
-### Conversion Mechanic
+### Android APK
 
-When a unit moves:
+Status: COMPLETE
 
-* All adjacent enemy units are converted
-* Converted units immediately change ownership
-* Converted units change appearance and color
-* Conversion animation implemented
+### Online PvP
 
-### Win Conditions
+Status: COMPLETE (Phase 1)
 
-Player wins when:
+### Campaign
 
-* Enemy has zero units remaining
+Status: PLAYABLE
 
-OR
+### AI Opponent
 
-* Opponent has no legal moves remaining
+Status: PLAYABLE
+
+### Local Multiplayer
+
+Status: COMPLETE
 
 ---
 
-# Board
+# Technology Stack
+
+Frontend
+
+* Phaser 3
+* TypeScript
+* Vite
+
+Mobile
+
+* Capacitor Android
+
+Backend
+
+* FastAPI
+* Docker Compose
+
+Future
+
+* PostgreSQL
+* WebSockets
+* Matchmaking
+* Ranked Play
+
+---
+
+# Gameplay Rules
+
+## Board
 
 Current board:
 
-```text
-Radius: 4
-Hex Size: 27.5
+* Hexagonal grid
+* Radius = 4
+
+Current size:
+
+```typescript
+BOARD_RADIUS = 4
+HEX_SIZE = 27.5
 ```
 
 Board centered on screen.
 
-Current placement:
-
-```typescript
-boardCenterX = (WIDTH / 2) + 25;
-boardCenterY = 475;
-```
-
 ---
 
-# Units
+## Units
 
-## Blue Soldier
+Each player controls soldiers.
 
-Image asset:
+### Blue
+
+Asset:
 
 ```text
 blue_01.png
 ```
 
-## Red Soldier
+### Red
 
-Image asset:
+Asset:
 
 ```text
 red_01.png
 ```
 
-Current implementation uses PNG sprite assets instead of procedurally drawn shapes.
+Custom PNG assets now replace procedural soldier drawings.
 
-Suggested location:
+---
+
+## Movement
+
+A turn allows:
 
 ```text
-public/assets/blue_01.png
-public/assets/red_01.png
+Move exactly 1 adjacent hex
+```
+
+Rules:
+
+* Must move to adjacent empty hex
+* Original hex becomes empty
+* Cannot move through units
+* Cannot move onto occupied hex
+
+---
+
+## Conversion Mechanic
+
+Core mechanic:
+
+When a unit moves into a hex:
+
+```text
+All adjacent enemy units become friendly units
+```
+
+Converted units:
+
+* Immediately change ownership
+* Change color
+* Change sprite
+
+---
+
+## Victory Conditions
+
+Player wins when:
+
+### Elimination
+
+```text
+Opponent has zero units remaining
+```
+
+### No Legal Moves
+
+```text
+Opponent cannot make a move
+```
+
+Winner determined by:
+
+```text
+Remaining unit count
 ```
 
 ---
 
-# AI System
+# Implemented Features
 
-Current AI:
+## Main Menu
 
-* Controls Red side
-* Evaluates every legal move
-* Scores moves based on:
+Working.
 
-```text
-Enemies Converted
-+
-Center Position Bonus
-+
-Small Random Bonus
-```
+Options:
 
-Formula:
-
-```typescript
-score =
-  converted * 100
-  + centerBonus
-  + randomBonus
-```
-
-AI behavior:
-
-* Waits briefly before moving
-* Highlights selected move
-* Executes move automatically
+* Campaign
+* Play Against AI
+* Local 2 Player
+* Play Against Online Player
 
 ---
 
-# Move Preview System
+## Campaign Mode
 
-Implemented.
-
-When selecting a unit:
-
-* Legal moves highlighted green
-* Shows:
-
-```text
-+1
-+2
-+3
-```
-
-indicating number of enemies converted.
-
-Animated floating preview text.
-
----
-
-# Game Modes
-
-## Campaign
-
-Implemented.
+Working.
 
 Features:
 
 * Level progression
 * Increasing AI difficulty
-* Next Level button
-* Retry Level button
+* Retry level
+* Next level
 
-Current difficulty adjustments:
+Current progression:
 
-Level 3+
+### Level 1–2
 
-* Red receives stronger starting positions
+Standard board.
 
-Level 5+
+### Level 3+
 
-* Additional board variations
+Additional Red starting positions.
 
-AI becomes stronger with level.
+### Level 5+
+
+Additional board variations.
 
 ---
 
 ## Play Against AI
 
-Implemented.
+Working.
 
 Human:
 
@@ -199,186 +243,442 @@ Red
 
 ---
 
-## Local 2 Player
+## AI System
 
 Implemented.
 
-Both players use same device.
+AI evaluates:
+
+```text
+Enemy conversions
++
+Center control
++
+Random tie breaker
+```
+
+Formula:
+
+```typescript
+score =
+    converted * 100
+    + centerBonus
+    + randomBonus
+```
+
+AI behavior:
+
+* Highlights move
+* Simulates thinking delay
+* Executes best move
+
+---
+
+## Local Multiplayer
+
+Working.
+
+Features:
+
+* Two players
+* Same device
+* Turn-based
 
 No AI.
 
 ---
 
-## Online Multiplayer
-
-Placeholder screen implemented.
-
-No networking yet.
-
-Future feature.
-
----
-
-# Main Menu
+# Move Preview System
 
 Implemented.
 
-Options:
+When selecting a unit:
+
+* Legal moves highlighted
+* Conversion count shown
+
+Example:
 
 ```text
-Campaign
-Play Against AI
-Local 2 Player
-Play Against Online Player
++1
++2
++3
 ```
 
----
-
-# UI Features
-
-Implemented:
-
-* Main menu
-* Mode selection
-* Restart button
-* Return to menu button
-* Turn indicator
-* Score display
-* Campaign level display
-* AI thinking indicator
-* Victory screen
+Animated preview labels.
 
 ---
 
-# Bug Fixes Completed
+# Android Support
 
-## Soldier Position
+Status: COMPLETE
+
+Framework:
+
+```text
+Capacitor
+```
+
+APK generation working.
+
+---
+
+## Android Fixes Completed
+
+### PNG Asset Loading
 
 Fixed.
 
-Units now centered inside hex tiles.
+Assets load correctly on Android.
 
 ---
 
-## Board Position
+### Fullscreen Scaling
 
-Fixed.
-
-Board centered properly on screen.
+Working.
 
 ---
 
-## Restart Bug
+### Touch Input
+
+Working.
+
+---
+
+### HTTP Networking
 
 Fixed.
 
 Issue:
 
 ```text
-Restart worked once
-Game became unresponsive
+Mixed Content
+```
+
+Error:
+
+```text
+https://localhost
+→
+http://192.168.x.x:8000
+```
+
+Android WebView blocked requests.
+
+Solution:
+
+capacitor.config.ts
+
+```typescript
+server: {
+  androidScheme: 'http',
+  cleartext: true
+}
+```
+
+AndroidManifest.xml
+
+```xml
+android:usesCleartextTraffic="true"
+```
+
+Result:
+
+Android APK can now communicate with PvP backend.
+
+---
+
+# Online PvP
+
+Status: WORKING
+
+---
+
+## Backend
+
+Technology:
+
+* FastAPI
+* Docker Compose
+
+Deployment:
+
+```bash
+docker compose up -d
+```
+
+---
+
+## PvP Architecture
+
+Client
+
+```text
+Phaser
+↓
+Capacitor APK
+```
+
+Backend
+
+```text
+FastAPI
+↓
+In-memory room storage
+```
+
+Communication
+
+```text
+HTTP Polling
+```
+
+Current polling interval:
+
+```text
+2.2 seconds
+```
+
+---
+
+## Online Features
+
+Implemented:
+
+### Create Room
+
+Player creates:
+
+```text
+ABCDE
+```
+
+style room code.
+
+---
+
+### Join Room
+
+Player enters room code.
+
+---
+
+### Turn Validation
+
+Server validates:
+
+* Current player
+* Adjacent move
+* Empty target hex
+* Legal ownership
+
+---
+
+### State Synchronization
+
+Server provides:
+
+```json
+room_state
+```
+
+containing:
+
+* board
+* current player
+* turn
+* winner
+* scores
+
+---
+
+### Victory Synchronization
+
+Working.
+
+Both players receive:
+
+```text
+Winner
+Final Score
+```
+
+---
+
+# PvP Bug Fixes Completed
+
+## Polling Overwrite Bug
+
+Issue:
+
+```text
+Player had to move quickly
+otherwise polling reset selection
 ```
 
 Cause:
 
+Old polling response overwrote local interaction.
+
+Solution:
+
+Added:
+
 ```typescript
-gameOver
-aiThinking
+onlineSubmittingMove
 ```
 
-state not reset.
+Polling now pauses during:
 
-Resolved using:
+* Selection
+* Move submission
 
-```typescript
-resetState()
+Stale state updates ignored.
+
+Result:
+
+Stable online gameplay.
+
+---
+
+## Android Connectivity Bug
+
+Issue:
+
+```text
+Browser worked
+APK failed
 ```
 
-and cleanup:
+Root cause:
 
-```typescript
-time.removeAllEvents()
-tweens.killAll()
+```text
+Mixed Content Security
+```
+
+Solution:
+
+Capacitor cleartext configuration.
+
+Result:
+
+APK successfully connects to:
+
+http://192.168.1.x:8000
+
+---
+
+# Current Folder Structure
+
+Frontend
+
+```text
+src/
+  main.ts
+  public/
+    assets/
+      blue_01.png
+      red_01.png
+```
+
+Backend
+
+```text
+docker-compose.yml
+
+app/
+  main.py
+  requirements.txt
+  Dockerfile
 ```
 
 ---
 
-# Technical Stack
+# Current Backend API
 
-Frontend:
+Create Room
 
-```text
-Phaser 3
-TypeScript
-Vite
+```http
+POST /rooms/create
 ```
 
-Planned Mobile:
+Join Room
 
-```text
-Capacitor
-Android
+```http
+POST /rooms/join
 ```
 
-Future Backend:
+State
 
-```text
-FastAPI
-WebSocket
-PostgreSQL
+```http
+GET /rooms/{room}/state
 ```
 
----
+Move
 
-# Android Packaging
-
-Not completed yet.
-
-Attempted:
-
-```bash
-npm install @capacitor/core
-npm install @capacitor/cli
-npm install @capacitor/android
+```http
+POST /rooms/{room}/move
 ```
 
-Blocked due to container networking issue.
+Health
 
-Recommendation:
-
-Build on local Windows machine.
-
-Commands:
-
-```bash
-npm install @capacitor/core @capacitor/cli @capacitor/android
-
-npm run build
-
-npx cap init HexConquest com.obbsco.hexconquest --web-dir=dist
-
-npx cap add android
-
-npx cap sync android
-
-npx cap open android
+```http
+GET /health
 ```
 
 ---
 
 # Recommended Next Development Tasks
 
-Priority Order
+Priority 1
 
-## 1. Android APK
+## Reconnection Support
 
-Package game as APK.
+Save:
 
-Test on actual devices.
+```typescript
+playerId
+roomCode
+playerColor
+```
+
+using:
+
+```typescript
+localStorage
+```
+
+Auto reconnect after:
+
+* App restart
+* APK crash
+* Accidental close
 
 ---
 
-## 2. Sound Effects
+Priority 2
+
+## Room Cleanup
+
+Current:
+
+```text
+Rooms live forever
+```
+
+Add:
+
+```python
+ROOM_TIMEOUT = 3600
+```
+
+Cleanup inactive rooms.
+
+---
+
+Priority 3
+
+## Sound Effects
 
 Add:
 
@@ -391,12 +691,14 @@ victory.wav
 
 ---
 
-## 3. Unit Movement Animation
+Priority 4
+
+## Better Animations
 
 Current:
 
 ```text
-Teleport
+Instant movement
 ```
 
 Desired:
@@ -407,103 +709,108 @@ Tween movement
 
 ---
 
-## 4. Campaign Expansion
+Priority 5
 
-Create:
+## Campaign Expansion
+
+Target:
 
 ```text
-Level 1-20
+20+ Levels
 ```
 
-Introduce:
+Add:
 
-* Different board layouts
-* AI personalities
+* Special layouts
 * Objectives
+* Stronger AI
 
 ---
 
-## 5. Save Progress
+Priority 6
 
-Store:
+## Persistent Backend
 
-```text
-Campaign Level
-Wins
-Losses
-Settings
-```
-
-using:
-
-```typescript
-localStorage
-```
-
----
-
-## 6. Online Multiplayer
-
-Future Architecture:
-
-Client
+Current:
 
 ```text
-Phaser + Capacitor
+In-memory storage
 ```
 
-Backend
+Move to:
 
 ```text
-FastAPI
-WebSocket
 PostgreSQL
 ```
 
-Features:
+Benefits:
 
-* Room Code
+* Reconnection
+* Match history
+* Rankings
+
+---
+
+Priority 7
+
+## WebSocket Upgrade
+
+Current:
+
+```text
+Polling
+```
+
+Future:
+
+```text
+WebSocket
+```
+
+Benefits:
+
+* Instant turns
+* Less traffic
+* Better UX
+
+---
+
+Priority 8
+
+## Ranked Multiplayer
+
+Future:
+
 * Matchmaking
-* Ranked Play
-* Spectator Mode
+* Elo rating
+* Seasons
+* Leaderboards
 
 ---
 
-# Future Ideas
+# Current State Summary
 
-Potential additions:
+The game is now fully playable in:
 
-## Heroes
+* Campaign Mode
+* Play Against AI
+* Local 2 Player
+* Online PvP
 
-Special units with abilities.
+The Android APK works.
 
-## Unit Types
+The Docker PvP backend works.
 
-* Infantry
-* Archer
-* Knight
-* Mage
+Players can create rooms, join rooms, and complete online matches.
 
-## Skins
+The next major milestone is:
 
-Cosmetic only.
+```text
+Reconnect Support + Persistent Backend
+```
 
-## Daily Challenges
+followed by:
 
-Single-player missions.
-
-## Leaderboards
-
-Online rankings.
-
-## Replay System
-
-Save and watch matches.
-
----
-
-# Current Goal
-
-Primary objective:
-
-Package current game as Android APK and test gameplay on real devices before implementing online multiplayer.
+```text
+Closed Beta Testing
+```
