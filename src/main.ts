@@ -66,12 +66,26 @@ const SOUND_FILES: Record<string, string[]> = {
   [SOUND_KEYS.victory]: ['/assets/victory.mp3'],
 };
 
+const MUSIC_KEYS = {
+  bgm: 'bgm',
+};
+
+const MUSIC_FILES: Record<string, string[]> = {
+  [MUSIC_KEYS.bgm]: ['/assets/music.mp3'],
+};
+
 function preloadSoundEffects(scene: Phaser.Scene) {
-  for (const [key, paths] of Object.entries(SOUND_FILES)) {
-    if (!scene.cache.audio.exists(key)) {
-      scene.load.audio(key, paths);
+    for (const [key, paths] of Object.entries(SOUND_FILES)) {
+        if (!scene.cache.audio.exists(key)) {
+            scene.load.audio(key, paths);
+        }
     }
-  }
+
+    for (const [key, paths] of Object.entries(MUSIC_FILES)) {
+        if (!scene.cache.audio.exists(key)) {
+            scene.load.audio(key, paths);
+        }
+    }
 }
 
 function unlockAudio(scene: Phaser.Scene) {
@@ -394,7 +408,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    this.input.once('pointerdown', () => unlockAudio(this));
+    this.input.once('pointerdown', () => MusicManager.play(this));
     this.createBackground();
 
     this.add.text(WIDTH / 2, 76, 'HEX CONQUEST', {
@@ -2469,3 +2483,26 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 new Phaser.Game(config);
+
+class MusicManager {
+    private static music: Phaser.Sound.BaseSound | null = null;
+
+    static play(scene: Phaser.Scene) {
+        unlockAudio(scene);
+
+        if (this.music?.isPlaying) return;
+
+        this.music = scene.sound.add('bgm', {
+            loop: true,
+            volume: 0.25
+        });
+
+        this.music.play();
+    }
+
+    static stop() {
+        this.music?.stop();
+        this.music?.destroy();
+        this.music = null;
+    }
+}
