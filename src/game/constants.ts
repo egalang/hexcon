@@ -27,3 +27,9 @@ export const COLORS = {
     panel: 0xffffff,
     text: "#ffffff",
 };
+
+export const WORLD_HEX_SIZE = 42;
+
+export const WORLD_OFFSET_X = WIDTH / 2;
+
+export const WORLD_OFFSET_Y = 220;

@@ -29,7 +29,8 @@ type CampaignObjectiveType =
   | 'win_within_turns'
   | 'control_territory'
   | 'hold_center'
-  | 'survive_turns';
+  | 'survive_turns'
+  | 'convert_soldiers';
 
 type CampaignObjective = {
   type: CampaignObjectiveType;
@@ -61,7 +62,7 @@ const CAMPAIGN_OBJECTIVES: Record<number, CampaignObjective> = {
   16: { type: 'hold_center', title: 'No Retreat', description: 'Control the center hex for 7 turns.', target: 7, starTurnLimit: 30, starTerritoryPercent: 78 },
   17: { type: 'win_within_turns', title: 'Attrition', description: 'Defeat Red within 30 turns.', target: 30, starTurnLimit: 24, starTerritoryPercent: 78 },
   18: { type: 'win_within_turns', title: 'Surgical Strike', description: 'Defeat Red within 25 turns.', target: 25, starTurnLimit: 20, starTerritoryPercent: 80 },
-  19: { type: 'control_territory', title: 'World Domination', description: 'Control at least 85% of the board.', target: 85, starTurnLimit: 32, starTerritoryPercent: 90 },
+  19: { type: 'convert_soldiers', title: 'Conversion Master', description: 'Convert at least 10 enemy soldiers.', target: 10, starTurnLimit: 28, starTerritoryPercent: 75 },
   20: { type: 'eliminate_red', title: 'Final Conquest', description: 'Eliminate Red and dominate the board.', starTurnLimit: 20, starTerritoryPercent: 80 },
 };
 

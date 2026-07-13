@@ -1,5 +1,5 @@
-type AiDifficulty = 'easy' | 'normal' | 'hard' | 'expert';
-type AiPersonality = 'balanced' | 'aggressive' | 'defensive' | 'center' | 'chaotic';
+export type AiDifficulty = 'easy' | 'normal' | 'hard' | 'expert';
+export type AiPersonality = 'balanced' | 'aggressive' | 'defensive' | 'center' | 'chaotic';
 
 type AiStats = {
   wins: number;

@@ -27,7 +27,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
         // Title
         //------------------------------------------------
 
-        this.add.text(
+        const title = this.add.text(
             WIDTH / 2,
             80,
             "MISSION COMPLETE",
@@ -43,7 +43,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
         // Subtitle
         //------------------------------------------------
 
-        this.add.text(
+        const subtitle = this.add.text(
             WIDTH / 2,
             130,
             `Level ${level} Complete`,
@@ -62,7 +62,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
             "★".repeat(stars) +
             "☆".repeat(3 - stars);
 
-        this.add.text(
+        const starsText = this.add.text(
             WIDTH / 2,
             220,
             starText,
@@ -77,7 +77,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
         // Divider
         //------------------------------------------------
 
-        this.add.line(
+        const divider = this.add.line(
             WIDTH / 2,
             275,
             -120,
@@ -92,7 +92,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
         // Rewards
         //------------------------------------------------
 
-        this.add.text(
+        const rewardsLabel = this.add.text(
             WIDTH / 2,
             320,
             "REWARDS",
@@ -103,7 +103,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
             }
         ).setOrigin(0.5);
 
-        this.add.text(
+        const rewardAmount = this.add.text(
             WIDTH / 2,
             365,
             `Gold   +${goldReward}`,
@@ -139,7 +139,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
             .setStrokeStyle(3, 0xffffff)
             .setInteractive({ useHandCursor: true });
 
-        this.add.text(
+        const continueText = this.add.text(
             WIDTH / 2,
             590,
             level >= CAMPAIGN_MAX_LEVEL
@@ -188,7 +188,7 @@ export default class CampaignRewardScene extends Phaser.Scene {
             .setStrokeStyle(2, 0xffffff)
             .setInteractive({ useHandCursor: true });
 
-        this.add.text(
+        const levelText = this.add.text(
             WIDTH / 2,
             665,
             "Level Select",
@@ -242,6 +242,16 @@ export default class CampaignRewardScene extends Phaser.Scene {
 
             this.scene.start("MenuScene");
 
+        });
+
+        [title, subtitle, starsText, rewardsLabel, rewardAmount, divider, continueBtn, continueText, levelBtn, levelText, menu].forEach((object) => {
+            object.setAlpha(0);
+            this.tweens.add({
+                targets: object,
+                alpha: 1,
+                duration: 450,
+                ease: "Power2.easeOut",
+            });
         });
     }
 }

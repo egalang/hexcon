@@ -63,6 +63,7 @@ export class HexConquestScene extends Phaser.Scene {
     private victorySoundPlayed = false;
     private centerHoldTurns = 0;
     private lastObjectiveTurnTracked = 0;
+    private blueConvertedCount = 0;
 
     constructor() {
         super('HexConquestScene');
@@ -110,6 +111,7 @@ export class HexConquestScene extends Phaser.Scene {
         this.aiResultSaved = false;
         this.centerHoldTurns = 0;
         this.lastObjectiveTurnTracked = 0;
+        this.blueConvertedCount = 0;
     }
 
     create() {
@@ -410,6 +412,11 @@ export class HexConquestScene extends Phaser.Scene {
                 n.piece = undefined;
                 this.createPiece(n);
                 converted.push(n);
+                
+                // Track blue conversions for campaign objective
+                if (player === 'blue') {
+                    this.blueConvertedCount++;
+                }
             }
         }
         return converted;
@@ -1063,6 +1070,10 @@ export class HexConquestScene extends Phaser.Scene {
             return `${objective.description} (${Math.min(this.turn, objective.target ?? this.turn)} / ${objective.target})`;
         }
 
+        if (objective.type === 'convert_soldiers') {
+            return `${objective.description} (${this.blueConvertedCount} / ${objective.target})`;
+        }
+
         return objective.description;
     }
 
@@ -1100,6 +1111,10 @@ export class HexConquestScene extends Phaser.Scene {
 
         if (objective.type === 'win_within_turns') {
             return counts.red === 0 && this.turn <= (objective.target ?? Number.MAX_SAFE_INTEGER);
+        }
+
+        if (objective.type === 'convert_soldiers') {
+            return this.blueConvertedCount >= (objective.target ?? 0);
         }
 
         return false;
